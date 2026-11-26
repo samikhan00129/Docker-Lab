@@ -1,0 +1,71 @@
+
+services:
+
+  # SERVER 1 - UBUNTU NGINX
+  ubuntu-nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    container_name: ubuntu-nginx-server
+    hostname: ubuntu-nginx
+    ports:
+      - "8090:80"
+    restart: unless-stopped
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # SERVER 2 - CENTOS TOMCAT
+  centos-tomcat:
+    build:
+      context: ./tomcat
+      dockerfile: Dockerfile
+    container_name: centos-tomcat-server
+    hostname: centos-tomcat
+    ports:
+      - "9000:8080"
+    restart: unless-stopped
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # SERVER 3 - ORACLE MYSQL
+  oracle-mysql:
+    image: container-registry.oracle.com/mysql/community-server:8.4
+    container_name: oracle-mysql-server
+    hostname: oracle-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: "ChangeMe@123"
+      MYSQL_DATABASE: devopsdb
+      MYSQL_USER: devops
+      MYSQL_PASSWORD: "Devops@123"
+    ports:
+      - "3636:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    restart: unless-stopped
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1",
+             "-uroot", "-pChangeMe@123"]
+      interval: 20s
+      timeout: 10s
+      retries: 10
+      start_period: 120s
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  mysql-data:
+    driver: local
